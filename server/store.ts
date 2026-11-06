@@ -1,8 +1,8 @@
 import { DatabaseSync } from 'node:sqlite';
-import type { Draft, Turn, Field } from '../shared/domain.ts';
+import type { Draft, Turn, Field, OpenQuestion } from '../shared/domain.ts';
 import { blankDraft } from '../shared/domain.ts';
 
-export type SessionState = { draft: Draft; turns: Turn[]; question: string | null; pendingField?: Field | null; sampleStep: number | null };
+export type SessionState = { draft: Draft; turns: Turn[]; question: string | null; pendingField?: Field | null; pendingQuestions?: OpenQuestion[]; sampleStep: number | null };
 export class Store {
   private db: DatabaseSync;
   constructor(path: string) {

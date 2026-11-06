@@ -1,6 +1,6 @@
-import { type Draft, type Field, type Turn, indianDate } from '../shared/domain.ts';
+import { type Draft, type Field, type Turn, type OpenQuestion, indianDate } from '../shared/domain.ts';
 
-export type Proposal = { changes: { field: Field; value: string | number | string[] | null; quote: string }[]; question: string | null; questionField?: Field | null };
+export type Proposal = { changes: { field: Field; value: string | number | string[] | null; quote: string }[]; question: string | null; questionField?: Field | null; questions?: OpenQuestion[] };
 const digitText = (text: string) => text.replace(/[०-९]/g, c => String(c.charCodeAt(0) - 0x966));
 const numbers: Record<string, number> = {
   zero: 0, shunya: 0, 'शून्य': 0, one: 1, ek: 1, 'एक': 1, two: 2, do: 2, 'दो': 2, three: 3, teen: 3, 'तीन': 3,
@@ -32,6 +32,45 @@ function amount(text: string): number | null {
 const hours = '(?:[0-9०-९]{1,2}|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|ek|do|teen|chaar|char|paanch|panch|chhe|che|saat|aath|nau|das|gyarah|barah|एक|दो|तीन|चार|पाँच|पांच|छह|छः|सात|आठ|नौ|दस|ग्यारह|बारह)';
 const period = '(?:subah|morning|shaam|sham|evening|raat|night|dopahar|afternoon|सुबह|शाम|रात|दोपहर)';
 const timePattern = new RegExp(`(?<![\\p{L}\\p{N}])(?:(${period})\\s+)?(${hours})(?::([0-9०-९]{2}))?\\s*(baje|बजे|a\\.?m\\.?|p\\.?m\\.?)(?![\\p{L}\\p{N}])`, 'giu');
+const corrected = (text: string, mentions: { index: number; end: number }[]) => mentions.length < 2 || mentions.slice(1).every((mention, i) => /(?:sorry|actually|instead|नहीं|nahi|बल्कि|balki|माफ)(?:[,\s]*(?:नहीं|nahi))*[,:\s]*(?:(?:एक\s*काम\s*करो|ek\s*kaam\s*karo)\s*[,:\s]*)?(?:(?:at|on|ko)\s*)?$/iu.test(text.slice(mentions[i].end, mention.index)));
+type Clock = { index: number; end: number; quote: string; hour: number; minute: number; half: 'am' | 'pm' | null; clock24: boolean };
+function clockValue(clock: Clock): string | null {
+  const { hour, minute, half, clock24 } = clock;
+  if (minute > 59 || hour < 0 || hour > 23 || (!clock24 && (!half || hour < 1 || hour > 12))) return null;
+  const h = clock24 ? hour : hour % 12 + (half === 'pm' ? 12 : 0);
+  return `${String(h).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
+}
+function readTime(text: string) {
+  const times: Clock[] = [...text.matchAll(timePattern)].map(match => {
+    const hour = amount(match[2])!, minute = match[3] ? Number(digitText(match[3])) : 0;
+    const qualifier = `${match[1] || ''} ${match[4]}`;
+    const half = /pm|p\.m|evening|night|afternoon|shaam|sham|raat|dopahar|शाम|रात|दोपहर/iu.test(qualifier) ? 'pm' : /am|a\.m|morning|subah|सुबह/iu.test(qualifier) ? 'am' : null;
+    return { index: match.index, end: match.index + match[0].length, quote: match[0], hour, minute, half, clock24: !half && hour > 12 };
+  });
+  for (const match of text.matchAll(/(?<![\d०-९])([0-9०-९]{1,2}):([0-9०-९]{2})(?![\d०-९])/gu)) {
+    if (times.some(t => match.index >= t.index && match.index < t.end)) continue;
+    const hour = Number(digitText(match[1]));
+    times.push({ index: match.index, end: match.index + match[0].length, quote: match[0], hour, minute: Number(digitText(match[2])), half: null, clock24: hour > 12 });
+  }
+  times.sort((a, b) => a.index - b.index);
+  const correction = corrected(text, times);
+  const ambiguous = !correction && new Set(times.map(t => `${t.hour}:${t.minute}:${t.half}`)).size > 1;
+  let selected = ambiguous ? null : times.at(-1) ?? null;
+  if (selected && !selected.half && !selected.clock24 && times.length > 1 && correction) {
+    const halves = [...new Set(times.slice(0, -1).map(t => t.half).filter(Boolean))];
+    if (halves.length === 1) selected = { ...selected, half: halves[0]! };
+  }
+  return { times, selected, ambiguous };
+}
+function periodReply(text: string): 'am' | 'pm' | 'ambiguous' | null {
+  const clean = text.toLowerCase().replaceAll('.', '');
+  const allowed = new Set('am pm i talking about in the at time evening morning night afternoon pe par aana hai matlab shaam sham subah raat dopahar hoon hu ke ka ki bare mein baat kar raha rahi hun yes haan के बारे में बात कर रहा रही हूँ हूं है हैं शाम सुबह रात दोपहर समय मतलब पर पे आना'.split(' '));
+  if (clean.split(/[\s,!?।]+/u).filter(Boolean).some(token => !allowed.has(token))) return null;
+  const qualifiers = clean.replace(/\bi\s+am\b/giu, 'i');
+  const pm = /(?<![\p{L}])(?:pm|evening|night|afternoon|shaam|sham|raat|dopahar|शाम|रात|दोपहर)(?![\p{L}])/iu.test(qualifiers);
+  const am = /(?<![\p{L}])(?:am|morning|subah|सुबह)(?![\p{L}])/iu.test(qualifiers);
+  return pm && am ? 'ambiguous' : pm ? 'pm' : am ? 'am' : null;
+}
 const weekdays: [RegExp, number][] = [
   [/sunday|ravivaar|ravivar|रविवार/iu, 0], [/monday|somvaar|somvar|सोमवार/iu, 1], [/tuesday|mangalvaar|mangalvar|मंगलवार/iu, 2],
   [/wednesday|budhvaar|budhvar|बुधवार/iu, 3], [/thursday|guruvaar|guruvar|गुरुवार/iu, 4], [/friday|shukravaar|shukravar|शुक्रवार/iu, 5], [/saturday|shanivaar|shanivar|शनिवार/iu, 6],
@@ -39,7 +78,12 @@ const weekdays: [RegExp, number][] = [
 
 // shortcut: this is a guided AC-intake parser, not open-ended language understanding; expand only with tested phrase families.
 export function parseRequest(text: string, draft: Draft, turns: Turn[], now = new Date()): Proposal {
-  const result: Proposal = { changes: [], question: null };
+  const result: Proposal = { changes: [], question: null, questions: [] };
+  const ask = (message: string, field: Field | null = null) => {
+    if (!result.questions!.some(q => q.field === field && q.message === message)) result.questions!.push({ message, field });
+    result.question = result.questions!.map(q => q.message).join(' ');
+    result.questionField = result.questions!.length === 1 ? field : null;
+  };
   const add = (field: Field, value: Proposal['changes'][number]['value'], quote: string) => {
     result.changes = result.changes.filter(c => c.field !== field); result.changes.push({ field, value, quote });
   };
@@ -70,29 +114,27 @@ export function parseRequest(text: string, draft: Draft, turns: Turn[], now = ne
     else if (repair && !/(?:repair|मरम्मत)\s*(?:nahi|नहीं|मत)|(?:no|not|मत)\s*(?:repair|मरम्मत)/iu.test(clause)) add('work', 'AC repair requested', repair[0]);
 
     if (/approval\s*ki\s*zarurat\s*nahi|approval\s*(?:not|isn't)\s*(?:needed|required)|remove\s*(?:the\s*)?(?:restriction|condition)|अनुमति\s*की\s*ज़रूरत\s*नहीं/iu.test(clause)) {
-      result.question = 'Please edit the approval instruction directly on the card to remove it, so the change is explicit.';
-      result.questionField = 'conditions';
+      ask('Please edit the approval instruction directly on the card to remove it, so the change is explicit.', 'conditions');
       continue;
     }
-    const hasSubject = /gas|गैस|part|पार्ट|filter|फ़िल्टर|फिल्टर|बदल|replace|extra\s*work|अतिरिक्त|काम/iu.test(clause);
+    const hasSubject = /gas|गैस|part|पार्ट|filter|फ़िल्टर|फिल्टर|बदल|replace|extra\s*work|अतिरिक्त/iu.test(clause) || /काम/iu.test(clause) && /approval|permission|अनुमति|अप्रूवल|काम\s*(?:मत|नहीं|nahi)/iu.test(clause);
     const hasLimit = /pehle|पहले|before|approval|अप्रूवल|permission|अनुमति|nahi|नहीं|\bmat\b|मत|\bdo\s*not\b|don't|without|बिना|only|sirf|सिर्फ/iu.test(clause);
     if ((hasSubject && hasLimit) || /\bdo\s*not\b|don't|without|बिना/iu.test(clause)) {
       const value = clause.trim().replace(/[.!।?]$/, '');
       if (value.length <= 300) {
         const existing = result.changes.find(c => c.field === 'conditions');
         add('conditions', [...(existing?.value as string[] || []), value], text);
-      } else result.question = 'Please add this longer instruction directly in Approval & instructions so no condition is lost.';
+      } else ask('Please add this longer instruction directly in Approval & instructions so no condition is lost.', 'conditions');
     }
     const budget = clause.match(/(?:budget|बजट)\s*(?:is\s*|hai\s*|है\s*|[:=-]\s*)?(.{1,80})/iu);
     if (budget) {
       const value = amount(budget[1]);
       if (/no\s*(?:fixed\s*)?budget|budget\s*(?:nahi|नहीं)|बजट\s*नहीं/iu.test(budget[0])) add('budget', null, budget[0]);
       else if (value !== null && Number.isInteger(value) && value > 0 && value <= 1000000 && !/-\s*[\d०-९]|\bor\b|या/iu.test(budget[1])) add('budget', value, budget[0]);
-      else { result.question = 'Please enter your maximum budget as a whole rupee amount, or leave the budget blank.'; result.questionField = 'budget'; }
+      else ask('Please enter your maximum budget as a whole rupee amount, or leave the budget blank.', 'budget');
     }
   }
 
-  const corrected = (mentions: { index: number; end: number }[]) => mentions.length < 2 || mentions.slice(1).every((mention, i) => /(?:sorry|actually|instead|नहीं|nahi|बल्कि|balki|माफ)[,:\s]*(?:(?:at|on|ko)\s*)?$/iu.test(text.slice(mentions[i].end, mention.index)));
   const dates: { index: number; end: number; value: string; quote: string }[] = [];
   for (const match of text.matchAll(/\b\d{4}-\d{2}-\d{2}\b|tomorrow|परसों|parso|आज|\baaj\b|today|कल|\bkal\b/giu)) {
     const quote = match[0];
@@ -105,50 +147,47 @@ export function parseRequest(text: string, draft: Draft, turns: Turn[], now = ne
   }
   dates.sort((a, b) => a.index - b.index);
   if (dates.length) {
-    if (!corrected(dates) && new Set(dates.map(d => d.value)).size > 1) {
-      add('visitDate', null, text); result.question = 'You mentioned different dates. Please give one requested visit date.'; result.questionField = 'visitDate';
+    if (!corrected(text, dates) && new Set(dates.map(d => d.value)).size > 1) {
+      add('visitDate', null, text); ask('You mentioned different dates. Please give one requested visit date.', 'visitDate');
     } else if (/yesterday|कल[^.!।\n]*(?:हुई\s*थी|हुआ\s*था)|\bkal\b[^.!।\n]*(?:hua\s*tha|hui\s*thi)/iu.test(text)) {
-      result.question = 'Do you mean a new visit tomorrow? Please give the requested date.'; result.questionField = 'visitDate';
+      ask('Do you mean a new visit tomorrow? Please give the requested date.', 'visitDate');
     } else { const last = dates.at(-1)!; add('visitDate', last.value, last.quote); }
   }
   const flexible = text.match(/any\s*time|anytime|time\s*(?:is\s*)?flexible|कभी\s*भी|kabhi\s*bhi/iu);
-  const qualified = [...text.matchAll(timePattern)];
-  const times = qualified.map(match => {
-    const h = amount(match[2]), minute = match[3] ? Number(digitText(match[3])) : 0;
-    const p = `${match[1] || ''} ${match[4]}`.toLowerCase();
-    const explicit = /am|pm|a\.m|p\.m|morning|evening|night|afternoon|subah|shaam|sham|raat|dopahar|सुबह|शाम|रात|दोपहर/iu.test(p);
-    const pm = /pm|p\.m|evening|night|afternoon|shaam|sham|raat|dopahar|शाम|रात|दोपहर/iu.test(p);
-    const hour = h !== null && h <= 12 ? h % 12 + (pm ? 12 : 0) : h;
-    const valid = h !== null && h <= 23 && minute < 60 && (explicit ? h >= 1 && h <= 12 : h > 12);
-    return { index: match.index, end: match.index + match[0].length, quote: match[0], value: valid ? `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}` : null };
-  });
-  for (const match of text.matchAll(/(?<![\d०-९])([0-9०-९]{1,2}):([0-9०-९]{2})(?![\d०-९])/gu)) {
-    if (times.some(t => match.index >= t.index && match.index < t.end)) continue;
-    const h = Number(digitText(match[1])), m = Number(digitText(match[2]));
-    times.push({ index: match.index, end: match.index + match[0].length, quote: match[0], value: h > 12 && h <= 23 && m < 60 ? `${h}:${String(m).padStart(2, '0')}` : null });
-  }
-  times.sort((a, b) => a.index - b.index);
+  const { times, selected, ambiguous } = readTime(text);
+  const halfReply = !times.length ? periodReply(text) : null;
   if (flexible && !/flexible\s*(?:nahi|नहीं)|not\s*flexible/iu.test(text) && !times.length) add('visitTime', 'flexible', flexible[0]);
   else if (times.length) {
-    const last = times.at(-1)!;
-    if ((!corrected(times) && new Set(times.map(t => t.value)).size > 1) || flexible) {
-      add('visitTime', null, text); result.question = 'You mentioned more than one time. Which single time should we request, including AM or PM?'; result.questionField = 'visitTime';
-    } else if (last.value) add('visitTime', last.value, last.quote);
-    else { add('visitTime', null, last.quote); result.question = 'सुबह या शाम? Please say the time with AM/PM, for example “shaam chhe baje” or “6 PM”.'; result.questionField = 'visitTime'; }
+    if (ambiguous || flexible) {
+      add('visitTime', null, text); ask('You mentioned more than one time. Which single time should we request, including AM or PM?', 'visitTime');
+    } else if (selected && clockValue(selected)) add('visitTime', clockValue(selected), selected.quote);
+    else { add('visitTime', null, selected!.quote); ask('सुबह या शाम? Please say the time with AM/PM, for example “shaam chhe baje” or “6 PM”.', 'visitTime'); }
+  } else if (halfReply) {
+    let context: Clock | null = null;
+    if (draft.fields.visitTime && draft.fields.visitTime !== 'flexible') {
+      const [hour, minute] = draft.fields.visitTime.split(':').map(Number);
+      context = { hour: hour % 12 || 12, minute, index: 0, end: 0, quote: '', half: null, clock24: false };
+    } else for (const turn of [...turns].reverse()) {
+      const prior = readTime(turn.text);
+      if (prior.times.length) { context = prior.selected; break; }
+    }
+    const qualified = context && halfReply !== 'ambiguous' ? { ...context, half: halfReply, clock24: false } : null;
+    if (qualified && clockValue(qualified)) add('visitTime', clockValue(qualified), text);
+    else ask('Please say one complete requested time, including the hour and AM or PM, for example “7 PM”.', 'visitTime');
   }
   const lastQuestion = turns.at(-1)?.reply || '';
   if (!result.changes.length && !result.question) {
     if (/what name|आपका नाम/iu.test(lastQuestion) && /^[\p{L}][\p{L} '-]{1,80}$/u.test(text.trim())) add('name', text.trim(), text);
     else if (/service address|पूरा पता/iu.test(lastQuestion) && /flat|house|road|street|apartment|नगर|रोड|मकान|फ्लैट|\d/iu.test(text) && text.length >= 8 && text.length <= 300) add('address', text.trim(), text);
     else if (/what needs attention|क्या परेशानी/iu.test(lastQuestion) && text.length >= 8 && text.length <= 300) add('problem', text.trim(), text);
-    else result.question = 'I could not confidently map that phrase. Please use a specific detail, or edit the job card directly.';
+    else ask('I could not confidently map that phrase. Please use a specific detail, or edit the job card directly.');
   }
   for (const clause of clauses) {
     const c = clause.trim();
     const captured = result.changes.some(change => change.field === 'conditions' ? (change.value as string[]).includes(c) : change.quote.includes(c) || c.includes(change.quote));
     const schedule = dates.some(d => c.includes(d.quote)) || times.some(t => c.includes(t.quote)) || (flexible && c.includes(flexible[0]));
-    if (!captured && !schedule && !/^(?:yes|haan|हाँ|हां)[, ]*$/iu.test(c)) {
-      result.question ||= 'Some words could not be mapped confidently. Please check every instruction on the card, then acknowledge this question.';
+    if (!captured && !schedule && !halfReply && !/^(?:yes|haan|हाँ|हां)[, ]*$/iu.test(c)) {
+      ask('I could not confidently map that phrase. Please use a specific detail, or edit the job card directly.');
     }
   }
 

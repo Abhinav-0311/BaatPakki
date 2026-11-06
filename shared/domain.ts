@@ -18,6 +18,7 @@ export const fieldSchemas = {
 export const fieldsSchema = z.object(fieldSchemas).strict();
 export type Fields = z.infer<typeof fieldsSchema>;
 export type Field = keyof Fields;
+export type OpenQuestion = { field: Field | null; message: string };
 export const fieldNames = Object.keys(fieldSchemas) as Field[];
 export const fieldLabels: Record<Field, string> = {
   name: 'Customer name', phone: 'Callback number', address: 'Service address', problem: 'What needs attention',

@@ -1,6 +1,6 @@
 import express, { type Request, type Response, type NextFunction } from 'express';
 import { z } from 'zod';
-import { applyChanges, blankDraft, confirmDraft, getMissing, indianDate, markReviewed, readback, fieldNames, type Change, type Draft, type Field, type Source } from '../shared/domain.ts';
+import { applyChanges, blankDraft, confirmDraft, getMissing, indianDate, markReviewed, readback, fieldNames, type Change, type Draft, type Field, type Source, type OpenQuestion } from '../shared/domain.ts';
 import { HttpError, validateWav, type Providers } from './providers.ts';
 import { Store, type SessionState } from './store.ts';
 
@@ -31,6 +31,19 @@ export function createApp(store: Store, providers: Providers) {
   const session = (res: Response) => res.locals.session as string;
   const output = (res: Response, state = store.get(session(res))) => ({ ...state, saved: store.list(session(res)), configuration: providers.ready() });
   const checkVersion = (state: SessionState, version: number, requestId: string) => { if (requestId !== state.draft.id || version !== state.draft.version) throw new HttpError(409, 'The request changed in another tab. Refresh to review the latest details.'); };
+  function updateQuestions(state: SessionState, resolved: Field[], incoming: OpenQuestion[] = []) {
+    const pending = state.pendingQuestions ?? (state.question ? [{ field: state.pendingField ?? null, message: state.question }] : []);
+    const next = pending.filter(q => !q.field || !resolved.includes(q.field));
+    for (const question of incoming) {
+      if (question.field) {
+        for (let i = next.length - 1; i >= 0; i--) if (next[i].field === question.field) next.splice(i, 1);
+      }
+      if (!next.some(q => q.field === question.field && q.message === question.message)) next.push(question);
+    }
+    state.pendingQuestions = next;
+    state.question = next.length ? next.map(q => q.message).join(' ') : null;
+    state.pendingField = next.length === 1 ? next[0].field : null;
+  }
   const mutate = (handler: (req: Request, res: Response, state: SessionState) => Promise<unknown> | unknown) => async (req: Request, res: Response, next: NextFunction) => {
     const id = session(res);
     if (busy.has(id)) return next(new HttpError(409, 'Your previous request is still processing. Please wait.'));
@@ -48,7 +61,7 @@ export function createApp(store: Store, providers: Providers) {
     if (state.draft.reviewedVersion === state.draft.version && /^(yes|yes correct|yes confirm|confirm|haan|haan sahi hai|हाँ|हां|हाँ सही है|हां सही है)[.!।\s]*$/iu.test(text.trim())) {
       state.draft = confirmDraft(state.draft, state.draft.version, text); store.save(session(res), state.draft);
       state.turns.push({ id: crypto.randomUUID(), text, source, createdAt: new Date().toISOString(), reply: 'Request confirmed. Your service team still needs to accept the visit.' });
-      state.question = null; store.set(session(res), state); return res.json(output(res, state));
+      state.question = null; state.pendingQuestions = []; store.set(session(res), state); return res.json(output(res, state));
     }
     const turnId = crypto.randomUUID();
     if (!providers.ready().extraction) {
@@ -61,12 +74,7 @@ export function createApp(store: Store, providers: Providers) {
     if (next.version === state.draft.version) next.version++;
     next.reviewedVersion = null; next.status = 'draft'; next.confirmedAt = null;
     state.draft = next;
-    const resolvesPending = state.pendingField && proposal.changes.some(c => c.field === state.pendingField && c.value !== null);
-    if (proposal.question) {
-      if (state.question && !resolvesPending && state.question !== proposal.question) { state.question += ` ${proposal.question}`; state.pendingField = null; }
-      else { state.question = proposal.question; state.pendingField = proposal.questionField ?? null; }
-    }
-    else if (resolvesPending) { state.question = null; state.pendingField = null; }
+    updateQuestions(state, proposal.changes.filter(c => c.value !== null || c.field === 'budget').map(c => c.field), proposal.questions ?? (proposal.question ? [{ field: proposal.questionField ?? null, message: proposal.question }] : []));
     const question = state.question || getMissing(next)[0]?.question || 'All the essentials are here. Please review the full request before confirming.';
     state.turns.push({ id: turnId, text, source, createdAt: new Date().toISOString(), reply: question });
     store.set(session(res), state); res.json(output(res, state));
@@ -92,12 +100,12 @@ export function createApp(store: Store, providers: Providers) {
     const body = z.union([versionSchema.extend(field.shape).strict(), versionSchema.extend({ changes: z.array(field).min(1).max(10) }).strict()]).parse(req.body); checkVersion(state, body.version, body.requestId);
     const changes = 'changes' in body ? body.changes : [body];
     state.draft = applyChanges(state.draft, changes.map(c => ({ field: c.field, value: c.value, quote: '', source: 'manual' } as Change)));
-    if (state.pendingField && changes.some(c => c.field === state.pendingField && c.value !== null)) { state.question = null; state.pendingField = null; }
+    updateQuestions(state, changes.filter(c => c.value !== null || c.field === 'budget').map(c => c.field));
     store.set(session(res), state); res.json(output(res, state));
   }));
   app.post('/api/acknowledge', mutate((req, res, state) => {
     const { version, requestId } = versionSchema.strict().parse(req.body); checkVersion(state, version, requestId);
-    state.question = null; state.pendingField = null; store.set(session(res), state); res.json(output(res, state));
+    state.question = null; state.pendingField = null; state.pendingQuestions = []; store.set(session(res), state); res.json(output(res, state));
   }));
   app.post('/api/review', mutate((req, res, state) => {
     const { version, requestId } = versionSchema.strict().parse(req.body); checkVersion(state, version, requestId);

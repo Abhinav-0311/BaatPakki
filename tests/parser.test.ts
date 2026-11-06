@@ -2,6 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { parseRequest } from '../server/parser.ts';
 import { applyChanges, blankDraft } from '../shared/domain.ts';
+import { spokenCorrection, approvalInstruction, periodReplies } from './fixtures/time-correction.ts';
 
 const now = new Date('2026-11-06T10:00:00Z');
 function parse(text: string) {
@@ -72,4 +73,38 @@ test('general prohibitions are preserved and unsupported clauses require explici
   const result = parse('Tomorrow at 7 PM. Do not enter without calling me.');
   assert.ok(result.draft.fields.conditions.some(s => s.includes('Do not enter without calling me')) || result.proposal.question);
   assert.ok(parse('Tomorrow at 7 PM. Leave the receipt with the neighbour.').proposal.question);
+});
+
+test('the reported Hindi correction keeps the evening, budget and real approval instruction', () => {
+  const { draft, proposal } = parse(spokenCorrection);
+  assert.equal(draft.fields.visitTime, '19:00');
+  assert.equal(draft.fields.budget, 800);
+  assert.deepEqual(draft.fields.conditions, [approvalInstruction]);
+  assert.equal(proposal.question, null);
+});
+
+test('PM-only follow-ups qualify a single pending clock without treating English I am as AM', () => {
+  for (const reply of periodReplies) {
+    const first = parse('7:00 बजे आना।');
+    const turns = [{ id: 'first', text: '7:00 बजे आना।', source: 'voice' as const, createdAt: now.toISOString(), reply: first.proposal.question! }];
+    const proposal = parseRequest(reply, first.draft, turns, now);
+    const next = applyChanges(first.draft, proposal.changes.map(c => ({ ...c, source: 'voice' as const })), { id: 'reply', text: reply });
+    assert.equal(next.fields.visitTime, '19:00', reply);
+    assert.equal(proposal.question, null, reply);
+    assert.deepEqual(next.fields.conditions, []);
+  }
+});
+
+test('a meridiem reply cannot choose between different pending clock alternatives', () => {
+  for (const text of ['4 PM or 6 PM', '4 baje ya 6 baje']) {
+    const first = parse(text);
+    const proposal = parseRequest('PM', first.draft, [{ id: 'first', text, source: 'text', createdAt: now.toISOString(), reply: first.proposal.question! }], now);
+    assert.equal(proposal.changes.find(c => c.field === 'visitTime')?.value ?? null, null);
+    assert.equal(proposal.questionField, 'visitTime');
+    assert.ok(proposal.question);
+  }
+});
+
+test('Hindi work prohibitions remain restrictions rather than time corrections', () => {
+  assert.deepEqual(parse('काम मत करना।').draft.fields.conditions, ['काम मत करना']);
 });

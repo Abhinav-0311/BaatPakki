@@ -50,9 +50,9 @@ Without a key, typed parsing, editing, confirmation, persistence and print still
 ## Scope and limits
 
 - Automatic extraction supports tested Hindi/Hinglish/English phrase families: common cooling/leak/noise/start problems, servicing/inspection/repair requests, explicit names/addresses/phone numbers, relative/ISO/weekday dates, AM/PM times, whole-rupee budgets and approval restrictions.
-- Open questions survive unrelated edits. Resolve the relevant detail, or explicitly acknowledge that you checked the card before review.
+- Open questions are tracked separately and deduplicated. They survive unrelated edits; a clear answer resolves only the relevant question. Unsupported instructions require an explicit acknowledgement after checking the card.
 - This is **not general language understanding**. Check every field. Unsupported phrases are surfaced for clarification/manual editing; recognition/extraction can still misinterpret speech.
-- A time such as “six” requires AM/PM. The parser does not infer prices, calendar availability, diagnoses, or that low cooling requires gas filling.
+- A bare time needs AM/PM. An explicit correction can retain the earlier period in the same utterance, and a follow-up such as “PM” qualifies one known clock. Multiple clock alternatives still require one complete time. The parser does not infer prices, calendar availability, diagnoses, or that low cooling requires gas filling.
 - Customer confirmation is tied to the request ID and reviewed version. “Yes, but...” changes the draft and needs another review.
 - Requests and transcripts are stored locally in `data/baatpakki.sqlite`. Saved cards are isolated by a same-site, HTTP-only browser-session cookie. Clearing browser cookies loses access through that browser to earlier saved cards; the local database is not automatically erased.
 - Microphone audio stays in memory in the browser tab and goes to Gnani for transcription. It is not saved by our server. Reloading removes source audio playback, while stored transcripts remain.
