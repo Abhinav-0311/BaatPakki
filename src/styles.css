@@ -1,5 +1,7 @@
 :root{
-  font-family:'Manrope','Noto Sans Devanagari',sans-serif;
+  --font-body:'Plus Jakarta Sans','Noto Sans Devanagari',Arial,sans-serif;
+  --font-display:'Fraunces','Noto Sans Devanagari',Georgia,serif;
+  font-family:var(--font-body);
   color:#292a26;
   background:#f7f6f1;
   font-synthesis:none;
@@ -118,7 +120,7 @@ button{
   height:1px;
   background:var(--accent)}
 h1{
-  font-family:'Manrope','Noto Sans Devanagari',sans-serif;
+  font-family:var(--font-body);
   font-size:clamp(42px,4.4vw,62px);
   line-height:1.07;
   font-weight:400;
@@ -239,7 +241,7 @@ h1 em{
   border-radius:4px;
   background:currentColor}
 .voice-area h3{
-  font-family:'Manrope','Noto Sans Devanagari',sans-serif;
+  font-family:var(--font-body);
   font-size:24px;
   font-weight:400;
   letter-spacing:-.4px;
@@ -323,7 +325,7 @@ h1 em{
   background:#e9eadd;
   display:grid;
   place-items:center;
-  font-family:'Manrope','Noto Sans Devanagari',sans-serif;
+  font-family:var(--font-body);
   font-style:italic;
   font-size:16px;
   color:#6a745d;
@@ -555,7 +557,7 @@ h1 em{
   border-radius:5px}
 .budget-box strong{
   display:block;
-  font-family:'Manrope','Noto Sans Devanagari',sans-serif;
+  font-family:var(--font-body);
   font-weight:400;
   font-size:22px;
   margin-top:4px;
@@ -647,7 +649,7 @@ h1 em{
   border-radius:7px;
   margin-bottom:15px}
 .review-copy h3{
-  font-family:'Manrope','Noto Sans Devanagari',sans-serif;
+  font-family:var(--font-body);
   font-size:24px;
   font-weight:400;
   margin-bottom:12px}
@@ -672,7 +674,7 @@ h1 em{
   color:#4b7653;
   flex-shrink:0}
 .success-line strong{
-  font-family:'Manrope','Noto Sans Devanagari',sans-serif;
+  font-family:var(--font-body);
   font-size:24px;
   font-weight:400;
   line-height:1.15}
@@ -692,7 +694,7 @@ h1 em{
   font-size:12px;
   color:#919485}
 .site-footer strong{
-  font-family:'Manrope','Noto Sans Devanagari',sans-serif;
+  font-family:var(--font-body);
   font-style:italic;
   color:#5d6851;
   font-size:14px;
@@ -800,7 +802,7 @@ h1 em{
   align-items:center;
   margin-bottom:11px}
 .modal h2{
-  font-family:'Manrope','Noto Sans Devanagari',sans-serif;
+  font-family:var(--font-body);
   font-size:30px;
   font-weight:400;
   letter-spacing:-.6px}
@@ -879,7 +881,7 @@ h1 em{
   display:block;
   margin-top:20px}
 .modal blockquote{
-  font-family:'Manrope','Noto Sans Devanagari',sans-serif;
+  font-family:var(--font-body);
   font-size:23px;
   font-weight:400;
   line-height:1.7;
@@ -921,7 +923,7 @@ h1 em{
   color:#939d87;
   text-align:center}
 .empty-history p{
-  font-family:'Manrope','Noto Sans Devanagari',sans-serif;
+  font-family:var(--font-body);
   font-size:27px;
   color:#68785b}
 .empty-history span{
@@ -937,7 +939,7 @@ h1 em{
   justify-content:space-between;
   gap:20px}
 .print-header h2{
-  font-family:'Manrope','Noto Sans Devanagari',sans-serif;
+  font-family:var(--font-body);
   font-size:34px}
 .print-header h2 span{
   color:var(--accent)}
@@ -1694,3 +1696,17 @@ h1{
 @media(max-width:900px){.workspace{grid-template-columns:1fr}.intro-row{width:100%}.intro-row>div:first-child{min-width:0}h1{max-width:720px}.site-header{gap:16px}}
 
 .wordmark{min-height:44px}
+
+/* Expressive display type; service details and controls stay in the interface face. */
+h1,.voice-area h3,.review-copy h3,.success-line strong,.modal h2,.empty-history p,.modal blockquote{
+  font-family:var(--font-display);
+  font-optical-sizing:auto;
+  font-weight:500;
+  letter-spacing:-.025em;
+}
+h1{line-height:1.08}
+h1 em{font-style:italic;font-weight:500}
+.voice-area h3,.review-copy h3,.success-line strong{font-size:28px}
+.modal h2{font-size:30px}
+.wordmark{letter-spacing:-1px}
+@media(max-width:440px){.modal h2{font-size:27px}h1{font-size:34px}}

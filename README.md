@@ -63,7 +63,7 @@ Without a key, typed parsing, editing, confirmation, persistence and print still
 
 [Editable typography and motion reference in Figma](https://www.figma.com/design/8Z9oVF7vetfMw1Fk8usNcB?node-id=2-2).
 
-Manrope with Noto Sans Devanagari fallback; 16px body/input text, 12px field labels and 36px mobile headlines. Motion uses short opacity/transform transitions and respects reduced-motion preferences. The Figma file is a visual reference; the local application remains the working product.
+Fraunces display headlines paired with Plus Jakarta Sans for the interface and Noto Sans Devanagari for Hindi; 16px body/input text, 12px field labels and 34px mobile headlines. Motion uses short opacity/transform transitions and respects reduced-motion preferences. The Figma file is a visual reference; the local application remains the working product.
 
 ## Verification
 
