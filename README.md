@@ -59,6 +59,12 @@ Without a key, typed parsing, editing, confirmation, persistence and print still
 - Recording is mono 16-bit PCM WAV, resampled to 16 kHz, stopped at 28 seconds to fit the current 30-second STT endpoint cap. Type or edit if microphone permission is denied; “Continue by typing” cancels a pending permission request.
 - No payments, dispatch, real phone calls, voice cloning, WhatsApp or public deployment.
 
+## Design reference
+
+[Editable typography and motion reference in Figma](https://www.figma.com/design/8Z9oVF7vetfMw1Fk8usNcB?node-id=2-2).
+
+Manrope with Noto Sans Devanagari fallback; 16px body/input text, 12px field labels and 36px mobile headlines. Motion uses short opacity/transform transitions and respects reduced-motion preferences. The Figma file is a visual reference; the local application remains the working product.
+
 ## Verification
 
 ```sh

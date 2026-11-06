@@ -183,7 +183,7 @@ export default function App() {
           <section className="conversation" aria-labelledby="conversation-title">
             <div className="section-heading"><div><span className="section-number">01</span><h2 id="conversation-title">The conversation</h2></div><span className={`connection ${state.configuration.speech ? 'connected' : ''}`}><span />{state.configuration.speech ? 'Voice connected' : 'Typing available'}</span></div>
             <div className={`voice-area ${recording ? 'is-recording' : ''}`}>
-              <div className="voice-wave" aria-hidden="true">{Array.from({ length: 7 }, (_, i) => <span key={i} style={{ height: recording ? `${8 + level * (20 + (3 - Math.abs(i - 3)) * 12)}px` : `${[6, 12, 19, 28, 19, 12, 6][i]}px` }} />)}</div>
+              <div className="voice-wave" aria-hidden="true">{Array.from({ length: 7 }, (_, i) => <span key={i} style={{ transform: `scaleY(${recording ? (8 + level * (20 + (3 - Math.abs(i - 3)) * 12)) / 54 : [0.22, 0.43, 0.68, 1, 0.68, 0.43, 0.22][i]})` }} />)}</div>
               <button className={`record-button ${recording ? 'active' : ''}`} onClick={toggleRecording} disabled={Boolean(busy) || !state.configuration.speech || confirmed} aria-label={recording ? 'Stop recording and process request' : 'Start recording your request'}>{recording ? <span className="stop-square" /> : <Icon name="mic" size={27} />}</button>
               <h3>{recording ? 'We’re listening.' : confirmed ? 'Baat pakki.' : busy || 'Tell us what you need.'}</h3>
               <p>{recording ? `${Math.floor(elapsed)}s / 28s · Tap to finish` : confirmed ? 'Your checked request is saved.' : 'Hindi, Hinglish or English. A sentence at a time.'}</p>
