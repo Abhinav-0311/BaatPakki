@@ -43,7 +43,7 @@ function displayValue(field: Field, value: Fields[Field]): string {
   if (field === 'budget') return `₹${Number(value).toLocaleString('en-IN')}`;
   return Array.isArray(value) ? value.join('\n') : String(value);
 }
-const greeting = 'Tell us what your AC needs. You can speak naturally, change your mind, and check every detail before confirming.';
+const greeting = 'Describe the AC issue and when you’d like someone to visit.';
 
 export default function App() {
   const [state, setState] = useState<ClientState | null>(null);
@@ -57,14 +57,16 @@ export default function App() {
   const player = useRef<HTMLAudioElement | null>(null), audioObjectUrl = useRef('');
   const speechRequest = useRef<AbortController | null>(null), micRequest = useRef<AbortController | null>(null);
   const sourceAudio = useRef(new Map<string, string>()), stopRef = useRef<() => Promise<void>>(async () => {});
-  const chatEnd = useRef<HTMLDivElement>(null), reviewTitle = useRef<HTMLHeadingElement>(null);
+  const chatLog = useRef<HTMLDivElement>(null), reviewTitle = useRef<HTMLHeadingElement>(null);
 
   useEffect(() => { request<ClientState>('/state').then(setState).catch(e => setError(e.message)); return () => {
     speechRequest.current?.abort(); micRequest.current?.abort(); void recorder.current?.cancel(); if (timer.current) clearInterval(timer.current);
     if (audioObjectUrl.current) URL.revokeObjectURL(audioObjectUrl.current);
     for (const url of sourceAudio.current.values()) URL.revokeObjectURL(url);
   }; }, []);
-  useEffect(() => { if (state?.turns.length) chatEnd.current?.scrollIntoView({ behavior: 'instant', block: 'nearest' }); }, [state?.turns.length]);
+  useEffect(() => {
+    if (chatLog.current) chatLog.current.scrollTop = chatLog.current.scrollHeight;
+  }, [state?.turns.length]);
   function report(e: unknown) { setError(e instanceof Error ? e.message : 'Please try again.'); if (e instanceof ApiError && e.transcript) setMessage(e.transcript); }
   async function run(label: string, action: () => Promise<void>) { if (busy || recording) return; setBusy(label); setError(''); try { await action(); } catch (e) { report(e); } finally { setBusy(null); } }
   function stopPlayback() {
@@ -165,49 +167,68 @@ export default function App() {
     const value = f?.[field]; const has = value !== null && value !== undefined && (!Array.isArray(value) || value.length > 0);
     return <div className={`card-field ${wide ? 'full' : ''} ${has ? 'filled' : ''}`} key={field}>
       <div className="field-label">{fieldLabels[field]}{draft?.evidence[field] && <button className="source-button" title={`Show source for ${fieldLabels[field]}`} aria-label={`Show source for ${fieldLabels[field]}`} onClick={() => setSource(field)}><Icon name="quote" size={12} /></button>}</div>
-      <div className={`field-value ${!has ? 'placeholder' : ''}`}>{has ? displayValue(field, value) : field === 'budget' ? 'No limit specified' : 'Waiting for your details'}</div>
+      <div className={`field-value ${!has ? 'placeholder' : ''}`}>{has ? displayValue(field, value) : 'Not added'}</div>
     </div>;
   }
 
   return <>
     <div className="app-shell">
       <header className="site-header">
-        <a className="wordmark" href="/" aria-label="BaatPakki home"><span className="brand-symbol"><Icon name="check" size={19} /></span>Baat<span>Pakki</span><span className="brand-period">.</span></a>
-        <span className="header-context">A little clarity goes a long way.</span>
-        <div className="header-actions"><button className="text-button" disabled={!state || locked} aria-label="Saved requests" onClick={() => setHistory(true)}><Icon name="history" size={17} /><span>Saved requests</span>{Boolean(state?.saved.length) && <span className="count">{state?.saved.length}</span>}</button><span className="header-divider" /><button className="text-button" disabled={!state || locked} aria-label="New request" onClick={newRequest}><Icon name="plus" size={17} /><span>New request</span></button></div>
+        <a className="wordmark" href="/" aria-label="BaatPakki home"><span className="brand-symbol"><Icon name="check" size={19} /></span>BaatPakki</a>
+        <div className="header-actions"><button className="text-button" disabled={!state || locked} aria-label="Saved requests" onClick={() => setHistory(true)}><Icon name="history" size={17} /><span>Saved requests</span>{Boolean(state?.saved.length) && <span className="count">{state?.saved.length}</span>}</button><button className="text-button" disabled={!state || locked} aria-label="New request" onClick={newRequest}><Icon name="plus" size={17} /><span>New request</span></button></div>
       </header>
       <main>
-        <div className="intro-row"><div><p className="eyebrow"><span className="tiny-line" />AC SERVICE, WITHOUT THE BACK-AND-FORTH</p><h1>Say it your way.<br /><em>Get every detail right.</em></h1><p className="intro-copy">Aap boliye. Hum likh lete hain.<br className="mobile-break" /> Check it together, then make it pakki.</p></div><div className="process-note"><span>01 / SAY IT</span><span>02 / CHECK IT</span><span>03 / PAKKI <Icon name="check" size={13} /></span></div></div>
+        <div className="page-heading">
+          <h1>AC service request</h1>
+          <p>Speak or type what you need, then check the details before confirming.</p>
+        </div>
         {error && <div className="error-banner" role="alert"><span>{error}</span><button className="icon-button" aria-label="Dismiss error" onClick={() => setError('')}><Icon name="close" size={17} /></button></div>}
         {!state ? <div className="initial-loading" role="status">{error ? <button className="primary-button" onClick={() => run('Reconnecting', async () => setState(await request<ClientState>('/state')))}>Try connecting again</button> : <><span className="spinner" /> Getting your workspace ready…</>}</div> : <div className="workspace">
           <section className="conversation" aria-labelledby="conversation-title">
-            <div className="section-heading"><div><span className="section-number">01</span><h2 id="conversation-title">The conversation</h2></div><span className={`connection ${state.configuration.speech ? 'connected' : ''}`}><span />{state.configuration.speech ? 'Voice connected' : 'Typing available'}</span></div>
-            <div className={`voice-area ${recording ? 'is-recording' : ''}`}>
-              <div className="voice-wave" aria-hidden="true">{Array.from({ length: 7 }, (_, i) => <span key={i} style={{ transform: `scaleY(${recording ? (8 + level * (20 + (3 - Math.abs(i - 3)) * 12)) / 54 : [0.22, 0.43, 0.68, 1, 0.68, 0.43, 0.22][i]})` }} />)}</div>
-              <button className={`record-button ${recording ? 'active' : ''}`} onClick={toggleRecording} disabled={Boolean(busy) || !state.configuration.speech || confirmed} aria-label={recording ? 'Stop recording and process request' : 'Start recording your request'}>{recording ? <span className="stop-square" /> : <Icon name="mic" size={27} />}</button>
-              <h3>{recording ? 'We’re listening.' : confirmed ? 'Baat pakki.' : busy || 'Tell us what you need.'}</h3>
-              <p>{recording ? `${Math.floor(elapsed)}s / 28s · Tap to finish` : confirmed ? 'Your checked request is saved.' : 'Hindi, Hinglish or English. A sentence at a time.'}</p>
-              {busy === 'Opening your microphone' && <button className="inline-link" onClick={() => { micRequest.current?.abort(); micRequest.current = null; setBusy(null); }}>Continue by typing</button>}
-              <div className="voice-settings"><button className="setting-toggle" aria-pressed={speechOn} onClick={() => { setSpeechOn(!speechOn); stopPlayback(); }}><Icon name="speaker" size={13} />Spoken replies<span className={`mini-toggle ${speechOn ? 'on' : ''}`} /></button></div>
+            <div className="section-heading">
+              <h2 id="conversation-title">Describe your request</h2>
+              <span className={`connection ${state.configuration.speech ? 'connected' : ''}`}><span />{state.configuration.speech ? 'Voice available' : 'Typing available'}</span>
             </div>
+            {!confirmed && <div className="voice-area">
+              <div className="voice-controls">
+                <button className="primary-button record-button" onClick={toggleRecording} disabled={Boolean(busy) || !state.configuration.speech}>
+                  {recording ? <span className="stop-square" /> : <Icon name="mic" size={19} />}
+                  {recording ? 'Stop recording' : 'Record request'}
+                </button>
+                <div className="voice-meta">
+                  {recording ? <><span>{Math.floor(elapsed)}s / 28s</span><span className="voice-meter" aria-hidden="true"><span style={{ transform: `scaleX(${Math.min(1, level)})` }} /></span></> : <span>Hindi, Hinglish or English</span>}
+                </div>
+              </div>
+              {busy === 'Opening your microphone' && <button className="inline-link" onClick={() => { micRequest.current?.abort(); micRequest.current = null; setBusy(null); }}>Continue by typing</button>}
+            </div>}
             {!state.configuration.speech && <p className="connection-note">Voice is not connected yet. You can type, edit the card, or explore the saved example.<button onClick={() => run('Checking voice connection', async () => setState(await request<ClientState>('/state')))} disabled={locked}>Check again</button></p>}
-            <div className="chat-log" aria-live="polite" aria-relevant="additions text" aria-busy={Boolean(busy)}>
-              <div className="assistant-message"><span className="assistant-mark">b.</span><div><p>{greeting}</p>{!state.turns.length && <p className="example-hint">“AC cooling kam hai. Kal shaam chhe baje servicing chahiye…”</p>}</div></div>
-              {state.turns.map(turn => <div key={turn.id} className="turn"><div className="customer-message"><span className="message-source">{turn.source === 'sample' ? 'SAVED EXAMPLE · NOT LIVE AUDIO' : turn.source === 'voice' ? 'YOU SAID' : 'YOU WROTE'}</span><p>{turn.text}</p>{sourceAudio.current.has(turn.id) && <audio className="source-audio" onPlay={e => onlyAudio(e.currentTarget)} controls preload="none" src={sourceAudio.current.get(turn.id)} aria-label="Your original recording" />}</div><div className="assistant-message"><span className="assistant-mark">b.</span><p>{turn.reply}</p></div></div>)}
-              {busy && <div className="processing-line" role="status"><span className="spinner" />{busy}…</div>}<div ref={chatEnd} />
+            {!confirmed && <form onSubmit={send} className="composer"><label className="sr-only" htmlFor="message">Type your request or correction</label><textarea id="message" value={message} onChange={event => setMessage(event.target.value)} placeholder="Type your request or a correction…" rows={2} maxLength={2000} disabled={locked} onKeyDown={event => { if (event.key === 'Enter' && !event.shiftKey && !event.nativeEvent.isComposing) { event.preventDefault(); void send(event); } }} /><button className="send-button" type="submit" aria-label="Send request" disabled={locked || !message.trim()}><Icon name="arrowUp" size={19} /></button></form>}
+            <div className="transcript-heading">
+              <h3>Transcript</h3>
+              <button className="setting-toggle" aria-pressed={speechOn} onClick={() => { setSpeechOn(!speechOn); stopPlayback(); }}><Icon name="speaker" size={15} />Spoken replies<span className={`mini-toggle ${speechOn ? 'on' : ''}`} /></button>
+            </div>
+            <div className="chat-log" ref={chatLog} tabIndex={0} aria-label="Conversation transcript" aria-live="polite" aria-relevant="additions text" aria-busy={Boolean(busy)}>
+              {!state.turns.length && <div className="assistant-message"><div><p>{greeting}</p><p className="example-hint" lang="hi-Latn">“AC cooling kam hai. Kal shaam chhe baje servicing chahiye…”</p></div></div>}
+              {state.turns.map(turn => <div key={turn.id} className="turn"><div className="customer-message"><span className="message-source">{turn.source === 'sample' ? 'SAVED EXAMPLE · NOT LIVE AUDIO' : turn.source === 'voice' ? 'YOU SAID' : 'YOU WROTE'}</span><p>{turn.text}</p>{sourceAudio.current.has(turn.id) && <audio className="source-audio" onPlay={e => onlyAudio(e.currentTarget)} controls preload="none" src={sourceAudio.current.get(turn.id)} aria-label="Your original recording" />}</div><div className="assistant-message"><p>{turn.reply}</p></div></div>)}
+              {busy && <div className="processing-line" role="status"><span className="spinner" />{busy}…</div>}
             </div>
             {audioUrl && <div className="reply-audio"><span>Spoken response</span><audio ref={player} controls src={audioUrl} aria-label="Spoken response from Gnani Timbre" onPlay={e => onlyAudio(e.currentTarget)} /></div>}
-            {!confirmed && <form onSubmit={send} className="composer"><label className="sr-only" htmlFor="message">Type your request or correction</label><textarea id="message" value={message} onChange={event => setMessage(event.target.value)} placeholder="Or type your request here…" rows={2} maxLength={2000} disabled={locked} onKeyDown={event => { if (event.key === 'Enter' && !event.shiftKey && !event.nativeEvent.isComposing) { event.preventDefault(); void send(event); } }} /><button className="send-button" type="submit" aria-label="Send request" disabled={locked || !message.trim()}><Icon name="arrowUp" size={19} /></button></form>}
-            <div className="conversation-bottom"><span>Guided understanding. Always check the card.</span>{!state.turns.length && <button className="inline-link" disabled={locked || draft!.version > 0} onClick={() => run('Opening the saved example', async () => setState(await request<ClientState>('/sample', { requestId: draft!.id, version: draft!.version, step: 0 })))}>Try a saved example <Icon name="arrow" size={14} /></button>}{state.sampleStep === 0 && <button className="inline-link" disabled={locked} onClick={() => run('Adding example details', async () => setState(await request<ClientState>('/sample', { requestId: draft!.id, version: draft!.version, step: 1 })))}>Add example contact details <Icon name="arrow" size={14} /></button>}</div>
+            <div className="conversation-bottom">{!state.turns.length && <button className="inline-link" disabled={locked || draft!.version > 0} onClick={() => run('Opening the saved example', async () => setState(await request<ClientState>('/sample', { requestId: draft!.id, version: draft!.version, step: 0 })))}>Try a saved example <Icon name="arrow" size={14} /></button>}{state.sampleStep === 0 && <button className="inline-link" disabled={locked} onClick={() => run('Adding example details', async () => setState(await request<ClientState>('/sample', { requestId: draft!.id, version: draft!.version, step: 1 })))}>Add example contact details <Icon name="arrow" size={14} /></button>}</div>
           </section>
 
           <aside className="request-panel" aria-labelledby="card-title">
-            <div className="section-heading"><div><span className="section-number">02</span><h2 id="card-title">Your request, in writing</h2></div><span className="detail-count">{progress}/7 essentials</span></div>
-            <div className={`job-card ${confirmed ? 'is-confirmed' : ''}`}>
-              <div className="card-top"><div className="card-brand">BaatPakki<span>.</span><p>SERVICE REQUEST</p></div><div className="request-id">#{draft!.id.slice(0, 6).toUpperCase()}<span>AC SERVICE</span></div></div>
+            <div className="section-heading">
+              <h2 id="card-title">Request details</h2>
+              <div className="request-progress">
+                <progress max={7} value={progress} aria-label="Required request details completed" />
+                <span>{progress}/7 complete</span>
+              </div>
+            </div>
+            <div className="job-card">
+              <div className="card-top"><span>AC service</span><span className="request-id">#{draft!.id.slice(0, 6).toUpperCase()}</span></div>
               <div className="card-status"><span className={`status-pill ${confirmed ? 'confirmed' : reviewed ? 'reviewed' : ''}`}><span />{confirmed ? 'Customer confirmed' : reviewed ? 'Ready for your confirmation' : ready ? 'Ready to review' : 'Taking details'}</span><button className="edit-button" onClick={openEditor} disabled={locked}><Icon name="edit" size={13} />Edit details</button></div>
               <div className="card-grid">{cardField('problem', true)}{cardField('work', true)}<div className="card-separator" />{cardField('visitDate')}{cardField('visitTime')}{cardField('address', true)}<div className="card-separator" />{cardField('name')}{cardField('phone')}</div>
-              <div className={`budget-box ${f!.budget !== null ? 'has-budget' : ''}`}><div><span className="field-label">MAXIMUM BUDGET</span><strong>{f!.budget !== null ? `₹${f!.budget.toLocaleString('en-IN')}` : 'Not specified'}</strong></div><span>A spending limit,<br />not a quoted price.</span></div>
+              <div className={`budget-box ${f!.budget !== null ? 'has-budget' : ''}`}><div><span className="field-label">MAXIMUM BUDGET</span><strong>{f!.budget !== null ? `₹${f!.budget.toLocaleString('en-IN')}` : 'Not specified'}</strong></div><span>Spending limit only</span></div>
               <div className="conditions-box"><div className="field-label"><span className="condition-icon">!</span>APPROVAL & INSTRUCTIONS{draft!.evidence.conditions && <button className="source-button" aria-label="Show source for Approval & instructions" onClick={() => setSource('conditions')}><Icon name="quote" size={12} /></button>}</div>{f!.conditions.length ? <ul>{f!.conditions.map((condition, i) => <li key={i}>{condition}</li>)}</ul> : <p className="placeholder">Any restrictions you mention will stay here.</p>}</div>
               <div className="card-foot"><span>{confirmed ? 'CHECKED BY YOU' : 'NOT CONFIRMED YET'}</span><span>Version {draft!.version}</span></div>
             </div>
@@ -218,7 +239,7 @@ export default function App() {
           </aside>
         </div>}
       </main>
-      <footer className="site-footer"><span>Say it. Check it. <strong>Pakki.</strong></span><span>Speech by <a href="https://www.gnani.ai/" target="_blank" rel="noreferrer">Gnani AI <Icon name="arrow" size={12} /></a><span className="footer-dot">·</span>Made for the way we speak.</span></footer>
+      <footer className="site-footer"><span>BaatPakki</span><span>Speech by <a href="https://www.gnani.ai/" target="_blank" rel="noreferrer">Gnani AI <Icon name="arrow" size={12} /></a></span></footer>
     </div>
     {editor && editValues && <Modal title="Let’s get the details right." wide onClose={() => { if (!busy) setEditor(false); }}><p className="modal-description">Correct anything here. A change means we’ll review the request again.</p><form onSubmit={saveEdits}><div className="edit-grid">{fieldNames.map(field => <div className={`edit-field ${['address', 'problem', 'work', 'conditions'].includes(field) ? 'full' : ''}`} key={field}><span>{fieldLabels[field]}{['budget', 'conditions'].includes(field) && <small>Optional</small>}</span>{field === 'conditions' ? <textarea aria-label={fieldLabels[field]} rows={3} value={editValues[field]} onChange={e => setEditValues({ ...editValues, [field]: e.target.value })} placeholder="One instruction per line" maxLength={6000} /> : field === 'visitTime' ? <div className="time-edit"><input type="time" aria-label="Requested time" value={editValues.visitTime === 'flexible' ? '' : editValues.visitTime} disabled={editValues.visitTime === 'flexible'} onChange={e => setEditValues({ ...editValues, visitTime: e.target.value })} /><label className="flexible-check"><input type="checkbox" checked={editValues.visitTime === 'flexible'} onChange={e => setEditValues({ ...editValues, visitTime: e.target.checked ? 'flexible' : '' })} />Flexible</label></div> : <input aria-label={fieldLabels[field]} type={field === 'visitDate' ? 'date' : field === 'budget' ? 'number' : field === 'phone' ? 'tel' : 'text'} min={field === 'visitDate' ? indianDate() : field === 'budget' ? 1 : undefined} max={field === 'budget' ? 1000000 : undefined} step={field === 'budget' ? 1 : undefined} maxLength={field === 'phone' ? 10 : 500} value={editValues[field]} onChange={e => setEditValues({ ...editValues, [field]: e.target.value })} />}</div>)}</div>{error && <p className="form-error" role="alert">{error}</p>}<div className="modal-actions"><button type="button" className="secondary-button" disabled={Boolean(busy)} onClick={() => setEditor(false)}>Cancel</button><button className="primary-button" disabled={Boolean(busy)}>Save corrections<Icon name="check" size={16} /></button></div></form></Modal>}
     {history && <Modal title="Saved requests" onClose={() => setHistory(false)}><p className="modal-description">Customer-confirmed requests saved in this browser session.</p>{state?.saved.length ? <div className="saved-list">{state.saved.map(item => <button key={item.id} className="saved-item" disabled={Boolean(busy)} onClick={() => run('Opening saved request', async () => { const data = await request<{ draft: Draft }>(`/saved/${item.id}`); setArchived(data.draft); setHistory(false); })}><span><strong>{item.name}</strong><small>{new Intl.DateTimeFormat('en-IN', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Asia/Kolkata' }).format(new Date(item.createdAt))} · Version {item.version}</small></span><Icon name="arrow" size={18} /></button>)}</div> : <div className="empty-history"><Icon name="history" size={32} /><p>No pakki requests yet.</p><span>Review and confirm a request, and it will appear here.</span></div>}</Modal>}

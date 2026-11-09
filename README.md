@@ -61,9 +61,9 @@ Without a key, typed parsing, editing, confirmation, persistence and print still
 
 ## Design reference
 
-[Editable typography and motion reference in Figma](https://www.figma.com/design/8Z9oVF7vetfMw1Fk8usNcB?node-id=2-2).
+The request workspace uses Inter with Noto Sans Devanagari for Hindi. White and cool neutrals make up the main surfaces, pale blue groups related controls and details, and cobalt identifies primary actions. The layout stacks on narrow screens and respects reduced-motion preferences.
 
-Fraunces display headlines paired with Plus Jakarta Sans for the interface and Noto Sans Devanagari for Hindi; 16px body/input text, 12px field labels and 34px mobile headlines. Motion uses short opacity/transform transitions and respects reduced-motion preferences. The Figma file is a visual reference; the local application remains the working product.
+[Earlier typography and motion exploration in Figma](https://www.figma.com/design/8Z9oVF7vetfMw1Fk8usNcB?node-id=2-2).
 
 ## Verification
 
