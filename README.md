@@ -61,7 +61,7 @@ Without a key, typed parsing, editing, confirmation, persistence and print still
 
 ## Design reference
 
-The request workspace uses Inter with Noto Sans Devanagari for Hindi. White and cool neutrals make up the main surfaces, pale blue groups related controls and details, and cobalt identifies primary actions. The layout stacks on narrow screens and respects reduced-motion preferences.
+The request workspace uses Inter with Noto Sans Devanagari for Hindi. Ivory makes up the main surfaces, sage groups related controls and details, and terracotta identifies primary actions. The layout stacks on narrow screens and respects reduced-motion preferences.
 
 [Earlier typography and motion exploration in Figma](https://www.figma.com/design/8Z9oVF7vetfMw1Fk8usNcB?node-id=2-2).
 
