@@ -3,15 +3,20 @@
   --font-display:'Fraunces','Noto Sans Devanagari',Georgia,serif;
   font-family:var(--font-body);
   color:#292a26;
-  background:#f7f6f1;
+  background:var(--canvas);
   font-synthesis:none;
   font-weight:400;
+  --canvas:#f7f6f1;
   --paper:#fffefa;
+  --surface:#e4eadc;
+  --surface-light:#eef2e9;
+  --surface-border:#c9d4c0;
+  --secondary-ink:#40543d;
   --ink:#292a26;
   --muted:#77786f;
   --line:#e4e3da;
-  --accent:#b8482c;
-  --accent-dark:#96391f;
+  --accent:#a63f28;
+  --accent-dark:#89331f;
   --green:#54795b}
 
 *{
@@ -29,7 +34,7 @@ button:disabled{
 a{
   color:inherit}
 button:focus-visible,a:focus-visible,input:focus-visible,textarea:focus-visible,summary:focus-visible{
-  outline:3px solid #b8482c80;
+  outline:3px solid var(--secondary-ink);
   outline-offset:4px}
 button:disabled{
   opacity:.42}
@@ -64,7 +69,7 @@ button{
 .wordmark>span:not(.brand-symbol):not(.brand-period){
   font-weight:500}
 .brand-period{
-  color:var(--accent)}
+  color:var(--secondary-ink)}
 .brand-symbol{
   width:29px;
   height:29px;
@@ -118,7 +123,7 @@ button{
 .tiny-line{
   width:22px;
   height:1px;
-  background:var(--accent)}
+  background:var(--secondary-ink)}
 h1{
   font-family:var(--font-body);
   font-size:clamp(42px,4.4vw,62px);
@@ -140,7 +145,7 @@ h1 em{
   gap:25px;
   padding-bottom:5px;
   font-size:12px;
-  color:#8c8d81;
+  color:var(--muted);
   letter-spacing:1px;
   white-space:nowrap}
 .process-note span{
@@ -148,7 +153,7 @@ h1 em{
   align-items:center;
   gap:5px}
 .process-note span:last-child{
-  color:var(--accent)}
+  color:var(--secondary-ink)}
 .workspace{
   display:grid;
   grid-template-columns:minmax(0,1.06fr) minmax(0,1fr);
@@ -169,7 +174,7 @@ h1 em{
   align-items:center}
 .section-number{
   font-size:12px;
-  color:#9b9d8e;
+  color:var(--muted);
   font-family:monospace}
 .section-heading h2{
   font-size:16px;
@@ -191,9 +196,9 @@ h1 em{
   background:#668871}
 .voice-area{
   position:relative;
-  border:1px solid var(--line);
+  border:1px solid var(--surface-border);
   border-radius:12px;
-  background:#f0f0e8;
+  background:var(--surface);
   min-height:258px;
   display:flex;
   align-items:center;
@@ -222,9 +227,9 @@ h1 em{
   width:68px;
   height:68px;
   border-radius:50%;
-  color:#fff9f1;
+  color:#fffcf5;
   background:var(--accent);
-  box-shadow:0 0 0 7px #b8482c0b,0 3px 4px #4a2a1610;
+  box-shadow:0 0 0 7px #a63f280b,0 3px 4px #4a2a1610;
   display:grid;
   place-items:center;
   z-index:1;
@@ -233,8 +238,8 @@ h1 em{
   opacity:.5;
   box-shadow:none}
 .record-button.active{
-  background:#a53b27;
-  box-shadow:0 0 0 11px #b8482c13}
+  background:var(--accent-dark);
+  box-shadow:0 0 0 11px #a63f2813}
 .stop-square{
   height:19px;
   width:19px;
@@ -259,7 +264,7 @@ h1 em{
   display:flex;
   align-items:center;
   gap:6px;
-  color:#6a6d61;
+  color:var(--muted);
   background:none;
   font-size:12px}
 .mini-toggle{
@@ -300,7 +305,7 @@ h1 em{
   transform-origin:center;
   transition:transform 100ms linear}
 .is-recording .voice-wave span{
-  background:var(--accent)}
+  background:var(--secondary-ink)}
 .chat-log{
   padding-top:26px;
   max-height:420px;
@@ -322,13 +327,13 @@ h1 em{
   flex:0 0 22px;
   height:22px;
   border-radius:50%;
-  background:#e9eadd;
+  background:var(--surface);
   display:grid;
   place-items:center;
   font-family:var(--font-body);
   font-style:italic;
   font-size:16px;
-  color:#6a745d;
+  color:var(--muted);
   margin-top:2px}
 .example-hint{
   color:#909283;
@@ -340,7 +345,7 @@ h1 em{
 .customer-message{
   margin:3px 0 18px 34px;
   padding:13px 16px;
-  background:#eeeee5;
+  background:var(--surface-light);
   border-radius:10px 10px 2px 10px;
   color:#3f4438;
   font-size:16px;
@@ -361,13 +366,13 @@ h1 em{
   align-items:flex-end;
   gap:12px;
   padding:12px;
-  border:1px solid #d9dbd0;
+  border:1px solid var(--surface-border);
   border-radius:10px;
-  background:var(--paper);
+  background:var(--surface-light);
   margin-top:6px;
   box-shadow:0 2px 3px #282a2003}
 .composer:focus-within{
-  border-color:#a7ab99}
+  border-color:var(--secondary-ink)}
 .composer textarea{
   border:0;
   outline:0;
@@ -387,12 +392,16 @@ h1 em{
 .send-button{
   height:32px;
   width:32px;
-  background:#32392c;
-  color:#fff;
+  background:var(--accent);
+  color:#fffcf5;
   border-radius:7px;
   flex-shrink:0;
   display:grid;
   place-items:center}
+.send-button:disabled{
+  background:var(--surface-border);
+  color:var(--secondary-ink);
+  opacity:1}
 .conversation-bottom{
   display:flex;
   gap:12px;
@@ -408,7 +417,7 @@ h1 em{
   align-items:center;
   justify-content:center;
   gap:5px;
-  color:var(--accent);
+  color:var(--secondary-ink);
   padding:0;
   font-size:12px;
   font-weight:500;
@@ -421,8 +430,8 @@ h1 em{
   font-size:12px;
   color:#909384}
 .job-card{
-  background:var(--paper);
-  border:1px solid #e1e1d8;
+  background:var(--surface);
+  border:1px solid var(--surface-border);
   box-shadow:0 3px 4px #30352104,0 12px 26px #30352104;
   position:relative;
   border-radius:3px;
@@ -434,9 +443,9 @@ h1 em{
   right:4px;
   bottom:-5px;
   height:4px;
-  border:1px solid #e1e1d8;
+  border:1px solid var(--surface-border);
   border-top:0;
-  background:#fffdf7;
+  background:var(--surface-light);
   border-radius:0 0 3px 3px;
   z-index:-1}
 .card-top{
@@ -444,13 +453,13 @@ h1 em{
   justify-content:space-between;
   align-items:center;
   padding-bottom:22px;
-  border-bottom:1px solid var(--line)}
+  border-bottom:1px solid var(--surface-border)}
 .card-brand{
   font-weight:700;
   letter-spacing:-.6px;
   font-size:17px}
 .card-brand>span{
-  color:var(--accent)}
+  color:var(--secondary-ink)}
 .card-brand p{
   font-size:12px;
   letter-spacing:1.7px;
@@ -461,7 +470,7 @@ h1 em{
   font-size:12px;
   font-family:monospace;
   text-align:right;
-  color:#6f7466;
+  color:var(--muted);
   letter-spacing:.3px}
 .request-id span{
   display:block;
@@ -543,12 +552,12 @@ h1 em{
   border-radius:2px}
 .card-separator{
   grid-column:1/-1;
-  border-top:1px solid #eeeee7;
+  border-top:1px solid var(--surface-border);
   margin:-3px 0 -2px}
 .budget-box{
   margin-top:23px;
-  border:1px solid #e8e9df;
-  background:#f7f7ef;
+  border:1px solid var(--surface-border);
+  background:var(--surface-light);
   display:flex;
   justify-content:space-between;
   align-items:center;
@@ -606,7 +615,7 @@ h1 em{
   justify-content:space-between;
   font-size:12px;
   letter-spacing:.9px;
-  border-top:1px dashed #dedfd4;
+  border-top:1px dashed var(--surface-border);
   padding:13px 0;
   color:#9ba08e}
 .card-foot span:last-child{
@@ -644,7 +653,7 @@ h1 em{
   margin:10px 0 0;
   padding:0 12px}
 .review-copy{
-  background:#edece2;
+  background:var(--surface-light);
   padding:20px;
   border-radius:7px;
   margin-bottom:15px}
@@ -765,7 +774,7 @@ h1 em{
   padding:10px 2px 0}
 .connection-note button{
   background:none;
-  color:var(--accent);
+  color:var(--secondary-ink);
   font-size:12px;
   text-decoration:underline;
   padding:0 0 0 6px}
@@ -855,7 +864,7 @@ h1 em{
   font-size:12px;
   color:#7d866d}
 .flexible-check input{
-  accent-color:var(--accent)}
+  accent-color:var(--secondary-ink)}
 .modal-actions{
   display:flex;
   justify-content:flex-end;
@@ -864,11 +873,14 @@ h1 em{
   border-top:1px solid var(--line);
   padding-top:20px}
 .secondary-button{
-  background:none;
-  border:1px solid #d7dccb;
+  display:inline-flex;
+  align-items:center;
+  gap:10px;
+  background:var(--surface-light);
+  border:1px solid var(--surface-border);
   padding:10px 16px;
   border-radius:6px;
-  color:#778367;
+  color:var(--secondary-ink);
   font-size:13px}
 .form-error{
   font-size:13px;
@@ -942,7 +954,7 @@ h1 em{
   font-family:var(--font-body);
   font-size:34px}
 .print-header h2 span{
-  color:var(--accent)}
+  color:var(--secondary-ink)}
 .print-header>span{
   font-size:12px;
   color:#789064;
@@ -1004,18 +1016,18 @@ h1 em{
   .record-button:not(:disabled):hover,.primary-button:not(:disabled):hover{
   background:var(--accent-dark)}
 .text-button:not(:disabled):hover,.edit-button:not(:disabled):hover{
-  color:var(--accent)}
+  color:var(--secondary-ink)}
 .source-button:hover{
   background:#eff0e7;
-  color:var(--accent)}
+  color:var(--secondary-ink)}
 .inline-link:not(:disabled):hover{
   text-decoration:underline}
-.saved-item:hover{
-  background:#f4f6ec}
+.saved-item:hover,.secondary-button:not(:disabled):hover{
+  background:var(--surface)}
 .icon-button:hover{
   background:#eceee2}
 .send-button:not(:disabled):hover{
-  background:#4a563e}
+  background:var(--accent-dark)}
 }
 
 @media(min-width:1500px){
@@ -1210,7 +1222,7 @@ body{
 .open-question{
   margin-bottom:16px;
   padding:16px;
-  background:#f3eee4;
+  background:var(--surface-light);
   border-radius:8px;
   font-size:14px;
   line-height:1.6}
@@ -1328,7 +1340,7 @@ h1 em{
   color:var(--muted)}
 .message-source{
   font-size:12px;
-  color:#647057;
+  color:var(--muted);
   letter-spacing:.7px}
 
 .field-label{
@@ -1343,7 +1355,7 @@ h1 em{
   margin-top:4px}
 .placeholder{
   font-size:14px;
-  color:#6d7563}
+  color:var(--muted)}
 .card-grid{
   row-gap:22px}
 
@@ -1351,7 +1363,7 @@ h1 em{
   position:relative;
   min-width:24px;
   min-height:24px;
-  color:#647057}
+  color:var(--muted)}
 
 .source-button:after{
   content:'';
@@ -1363,7 +1375,7 @@ h1 em{
 .card-brand p,.request-id span{
   font-size:12px;
   letter-spacing:1px;
-  color:#647057}
+  color:var(--muted)}
 .request-id{
   font-size:12px}
 
@@ -1401,7 +1413,7 @@ h1 em{
   color:#776343}
 .card-foot{
   font-size:12px;
-  color:#647057;
+  color:var(--muted);
   letter-spacing:.5px}
 
 .primary-button,.secondary-button{
@@ -1424,7 +1436,7 @@ h1 em{
   height:44px}
 
 .composer textarea::placeholder{
-  color:#73796a}
+  color:var(--muted)}
 .conversation-bottom{
   font-size:12px;
   color:#626b56;
@@ -1464,7 +1476,7 @@ h1 em{
 
 .edit-field small{
   font-size:12px;
-  color:#647057}
+  color:var(--muted)}
 .flexible-check{
   font-size:14px;
   min-height:44px}
