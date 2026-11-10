@@ -6,6 +6,10 @@ A Hindi/Hinglish voice intake workspace for an AC-service business. A customer s
 
 Uses **Gnani Prisma v3.0** for speech recognition and **Gnani Timbre v3.0 / Shivani** for spoken replies. A deliberately narrow, local parser maps supported request phrases to fields. **No Gemini or other text-model key is required.**
 
+[One-page solution pitch](docs/SOLUTION_PITCH.md) · [Demo walkthrough](docs/DEMO.md)
+
+![BaatPakki showing a sample Hinglish conversation beside a completed AC service request, ready for review](docs/workspace-preview.png)
+
 ## Run locally
 
 Requires Node.js **24+** and npm.
@@ -45,7 +49,7 @@ Then provide synthetic contact details, for example:
 
 The time becomes 6 PM, the maximum budget is ₹800, and the approval instruction stays on the card. Review the written details or listen to the readback, then confirm. A correction such as `Haan lekin 7 PM ko aana` resets confirmation and changes the time. Direct edits do the same.
 
-Without a key, typed parsing, editing, confirmation, persistence and print still work. The **saved example** is explicitly labelled; it is a fixture, not a live speech result.
+To try the flow without a Gnani key, select **Try a saved example**, **Add example contact details**, and **Review the full request**. The example uses synthetic details and its transcript is labelled as a saved example. You can also type your own request, edit fields, confirm, and print the card without a key.
 
 ## Scope and limits
 
@@ -78,8 +82,6 @@ A separate live check on 6 November 2026 successfully generated a short Hindi ut
 
 ## Submission materials
 
-- [One-page solution pitch](docs/SOLUTION_PITCH.md)
-- [2–3 minute demo outline](docs/DEMO.md)
 - [Implementation plan](docs/superpowers/plans/2026-11-06-baatpakki.md)
 - [API research and dashboard notes](GNANI_API_NOTES.md)
 

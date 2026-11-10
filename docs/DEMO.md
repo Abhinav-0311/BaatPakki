@@ -12,6 +12,6 @@ Use the live application with actual Gnani speech, and synthetic contact details
 | 2:10–2:35 | Review again and confirm the checked version. Show saved status, the distinction from business appointment acceptance, and the saved/printable card. |
 | 2:35–2:50 | Explain Prisma transcription, Timbre speech, the local guided parser, and the need to check fields. Close with the project name. |
 
-Before recording: verify local setup, real microphone audio and playback, hide credentials and notifications, use current relative dates, and keep the demo under three minutes. Post the working video publicly, tag Gnani AI and include `#GnaniAI` and `#GreatIndianAIInternshipChallenge`.
+Before recording, check microphone input and playback, hide credentials and notifications, and keep the demo between two and three minutes.
 
-Submission form supplied by Gnani's emailed reply: https://forms.cloud.microsoft/r/dfFShbp7W7 . Required assets include an accessible project link containing a pitch no longer than one page and a 2–3 minute demo link. No form has been submitted by this project.
+The [submission form](https://forms.cloud.microsoft/r/dfFShbp7W7) asks for a project link containing a [one-page pitch](SOLUTION_PITCH.md) and an accessible demo video link. Gnani confirmed by email that BaatPakki can be considered for the internship with the bonus-awards social post field left blank.
